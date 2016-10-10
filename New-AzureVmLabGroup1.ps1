@@ -27,12 +27,12 @@
 #>
 
 param (
-    [parameter(Mandatory=$False)] [string] $AzureUserID   = "ds0934@hotmail.com",
-    [parameter(Mandatory=$False)] [string] $AzureTenantID = "03b55dea-ce59-4531-b1ef-a590e7dbd162",
-    [parameter(Mandatory=$False)] [string] $azSubId     = "af15d920-86d8-4062-8801-d11eee853114",
+    [parameter(Mandatory=$False)] [string] $AzureUserID   = "",
+    [parameter(Mandatory=$False)] [string] $AzureTenantID = "",
+    [parameter(Mandatory=$False)] [string] $azSubId     = "",
     [parameter(Mandatory=$False)] [string] $InputFile   = "azurelab.csv",
     [parameter(Mandatory=$False)] [string] $StorageAcct = "...",
-    [parameter(Mandatory=$False)] [string] $Location    = "westus",
+    [parameter(Mandatory=$False)] [string] $Location    = "eastus",
     [parameter(Mandatory=$False)] [string] $subnetName  = "...",
     [parameter(Mandatory=$False)] [string] $vnetName    = "...",
     [parameter(Mandatory=$False)] [switch] $ForceRun
