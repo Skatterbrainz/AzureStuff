@@ -21,8 +21,8 @@
     FileName:    New-AzureVmLabGroup.ps1
     Author:      David Stein
     Created:     2016-08-11
-    Updated:     2016-08-17
-    Version:     1.0.3
+    Updated:     2016-10-17
+    Version:     2.0.1
     referenced: https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-windows-ps-create/
 #>
 
