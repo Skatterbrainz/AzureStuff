@@ -2,9 +2,9 @@
     [parameter(Mandatory=$False)] [string] $azRgName = "rg1",
     [parameter(Mandatory=$False)] [string] $azVmList = "VM01,VM02",
     [parameter(Mandatory=$False)] [string] $azEnv   = "AzureCloud",
-    [parameter(Mandatory=$False)] [string] $azAcct  = "ds0934@hotmail.com",
-    [parameter(Mandatory=$False)] [string] $azTenId = "03b55dea-ce59-4531-b1ef-a590e7dbd162",
-    [parameter(Mandatory=$False)] [string] $azSubId = "af15d920-86d8-4062-8801-d11eee853114"
+    [parameter(Mandatory=$False)] [string] $azAcct  = "<EmailAddress>",
+    [parameter(Mandatory=$False)] [string] $azTenId = "<TenantID>",
+    [parameter(Mandatory=$False)] [string] $azSubId = "<SubscriptionID>"
 )
 
 # establish session authentication
