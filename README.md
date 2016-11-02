@@ -1,3 +1,4 @@
 # AzureStuff
-Scripts for working with Azure
-spin up an Azure lab using a CSV parameter file to control the outcome.
+Scripts for working with Azure.
+
+Spin up an Azure lab using a CSV parameter file to control the outcome.
