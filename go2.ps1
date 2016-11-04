@@ -1,16 +1,36 @@
+<#
+.SYNOPSIS
+	Create Azure ARM VM lab
+.DESCRIPTION
+	
+.PARAMETER AccountID
+	[string] (required) email address for tenant/subscription connection
+.PARAMETER TenantId
+	[string] (required) guid for tenant ID
+.PARAMETER SubscriptionId
+	[string] (required) guid for subscription ID
+.PARAMETER InputFile
+	[string] (optional) name of CSV input file
+.NOTES
+	David Stein
+	Date Created: 09/08/2016
+	Date Modified: 11/04/2016
+#>
+
 
 param (
-    [parameter(Mandatory=$False)] [string] $azEnv      = "AzureCloud",
-    [parameter(Mandatory=$False)] [string] $azAcct     = "kevin@thenext.net",
-    [parameter(Mandatory=$False)] [string] $azTenId    = "ffefc0c4-2ef8-49f8-a251-907971968a26",
-    [parameter(Mandatory=$False)] [string] $azSubId    = "d2fc1b6f-162c-4553-b423-6c8b9902819e",
-    [parameter(Mandatory=$False)] [string] $InputFile  = "go.csv"
+    [parameter(Mandatory=$True)] [string] $AccountID,
+    [parameter(Mandatory=$True)] [string] $TenantId,
+    [parameter(Mandatory=$True)] [string] $SubscriptionId,
+    [parameter(Mandatory=$False)] [string] $VmUser = 'install',
+    [parameter(Mandatory=$False)] [string] $VmPwd = 'LongPassword!1234',
+    [parameter(Mandatory=$False)] [string] $InputFile = "go.csv"
 )
-
+$azEnv = "AzureCloud"
 Write-Output "checking if session is authenticated..."
 if ($azCred -eq $null) {
     Write-Output "authentication is required."
-    $azCred = Login-AzureRmAccount -SubscriptionId $azSubId -TenantId $azTenId
+    $azCred = Login-AzureRmAccount -SubscriptionId $SubscriptionId -TenantId $TenantId
 }
 else {
     Write-Output "authentication already confirmed."
@@ -23,12 +43,12 @@ if ($csvData -ne $null) {
 
     foreach ($row in $csvData) {
         $Location       = $row.Location
-		$vmName         = $row.Name
+	$vmName         = $row.Name
         $sourceCont     = $row.sourceContainer
         $sourceVHD      = $row.SourceVHD
         $destCont       = $row.destinationContainer
-		$osDiskUri      = $row.osdiskUri
-		$saName         = $row.StorageAccount
+	$osDiskUri      = $row.osdiskUri
+	$saName         = $row.StorageAccount
         $storagesku     = $row.StorageSku
         $vmSize         = $row.Size
         $Publisher      = $row.PublisherName
@@ -154,10 +174,10 @@ if ($csvData -ne $null) {
             
             # VM components
             Write-Output "preparing components for virtual machine..."
-            $SecurePassword = ConvertTo-SecureString "PickaPassword!2830" -AsPlainText -Force
-            $Credential = New-Object System.Management.Automation.PSCredential ("install", $SecurePassword); 
+            $SecurePassword = ConvertTo-SecureString "$VmPwd" -AsPlainText -Force
+            $Credential = New-Object System.Management.Automation.PSCredential ($VmUser, $SecurePassword); 
             $vm = New-AzureRmVMConfig -VMName $vmName -VMSize $vmSize
-            $vm = Set-AzureRmVMOperatingSystem -VM $vm -Windows -ComputerName $vmname -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate
+            $vm = Set-AzureRmVMOperatingSystem -VM $vm -Windows -ComputerName $vmName -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate
             $vm = Add-AzureRmVMNetworkInterface -VM $vm -Id $nic.Id
             
             # VM Disk (OS)
@@ -183,6 +203,7 @@ if ($csvData -ne $null) {
             if ($DataDiskSize1 -ne "") {
                 $dataDiskUri = "$stURI"+"$destCont"+"/$datadiskname"
                 Write-Output "Creating Data Disk: $datadiskname"     
+		Write-Output "Data Disk URI: $dataDiskUri"
                 $vm = Get-AzureRmVM -ResourceGroupName $rgName -Name $vmName 
                 Add-AzureRmVMDataDisk -VM $vm -Name $datadiskname -VhdUri $dataDiskUri -Caching $Caching -DiskSizeinGB $DataDiskSize1  -CreateOption Empty
                 Update-AzureRmVM -ResourceGroupName $rgName -VM $vm
@@ -198,17 +219,6 @@ if ($csvData -ne $null) {
             Write-Output "`tPrivate IP: $pvtIP"
             Write-Output "`tPublic IP: $pubIP"
         }
-        
-<#        else {
-            Write-Output "testmode enabled."
-            Write-Output "vm: $vmName / size: $vmSize / Location: $Location"
-            $blobPath  = "$vmName"+"os.vhd"
-            $osDiskUri = "$stURI"+"vhds/$blobPath"
-            $diskName  = "$vmName"+"osdisk"
-            Write-Output "`tstorage blob: $osDiskUri"
-            Write-Output "`tstorage disk: $diskName"
-        }
-#>
     }
 }
 
