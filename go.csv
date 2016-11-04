@@ -1,2 +1,4 @@
 Name,Description,DataDiskSize1,Caching,ResourceGroup,NetworkingResGroup,StorageResGroup,StorageAccount,VnetName,StorageSku,location,Size,SubnetRange,AddressRange,SubnetName,PrivateIP,PublicIP,PublisherName,Offer,Version,Skus,sourceContainer,destinationContainer,SourceVHD
-go3,,,,gorg,gorg,gorg,gosa01,govnet,Standard_GRS,eastus2,Standard_A1,10.21.100.0/24,10.21.0.0/16,AdfsSubnet,10.21.100.94,,,,,,template,vhd,Azure_disk_1.vhd
+;go3,,,,gorg,gorg,gorg,gosa01,govnet,Standard_GRS,eastus2,Standard_A1,10.21.100.0/24,10.21.0.0/16,AdfsSubnet,10.21.100.94,,,,,,template,vhd,Azure_disk_1.vhd
+dc1,Domain Controller,,,contoso1,contoso1,contoso1,csa1,vnet1,Standard_GRS,eastus2,Standard_A1,10.21.100.0/24,10.21.0.0/16,subnet1,10.21.100.94,,,,,,template,vhd,Azure_disk_1.vhd
+dc2,Domain Controller,,,contoso1,contoso1,contoso1,csa1,vnet1,Standard_GRS,eastus2,Standard_A1,10.21.100.0/24,10.21.0.0/16,subnet1,10.21.100.95,,,,,,template,vhd,Azure_disk_1.vhd
