@@ -31,7 +31,7 @@
 	Date Created.... 09/08/2016
 	Date Modified... 11/10/2016
 
-	Version......... 2016.11.12.01
+	Version......... 2016.11.12.03
 
 .EXAMPLE
     Azure-Buildout.ps1 -CredFile "mycreds.csv" -InputFile "contoso.csv"
@@ -123,7 +123,7 @@ function Test-BlobExists {
     Write-Verbose "info: ContainerName........ $ContainerName"
 
     $StorageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $ResourceGroupName -Name $StorageAccountName)[0].Value
-    $StorageContext = New-AzureStorageContext –StorageAccountName $StorageAccountName -StorageAccountKey $StorageKey
+    $StorageContext = New-AzureStorageContext â€“StorageAccountName $StorageAccountName -StorageAccountKey $StorageKey
     $(Get-AzureStorageBlob -Context $StorageContext -Container $ContainerName | ?{$_.Name -eq $BlobName})
 }
 
@@ -153,8 +153,8 @@ function Copy-SourceVHD {
     $SourceStorageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $SrcResourceGroupName -Name $SrcStorageAccountName)[0].Value
     $DestStorageKey   = (Get-AzureRmStorageAccountKey -ResourceGroupName $DestResourceGroupName -Name $DestStorageAccountName)[0].Value
 
-    $SourceStorageContext = New-AzureStorageContext –StorageAccountName $SourceStorageAccount -StorageAccountKey $SourceStorageKey
-    $DestStorageContext   = New-AzureStorageContext –StorageAccountName $DestStorageAccountName -StorageAccountKey $DestStorageKey
+    $SourceStorageContext = New-AzureStorageContext â€“StorageAccountName $SourceStorageAccount -StorageAccountKey $SourceStorageKey
+    $DestStorageContext   = New-AzureStorageContext â€“StorageAccountName $DestStorageAccountName -StorageAccountKey $DestStorageKey
 
     $Blobs = (Get-AzureStorageBlob -Context $SourceStorageContext -Container $SrcContainerName | ?{$_.Name -eq $SourceBlob})
     $BlobCpyAry = @()
@@ -189,6 +189,39 @@ function Copy-SourceVHD {
         }
     }
     $(Get-AzureStorageBlob -Context $DestStorageContext -Container $DestContainerName | ?{$_.Name -eq $SourceBlob})
+}
+
+#------------------------------------------------------------------
+# verify marketplace image publisher is valid
+#------------------------------------------------------------------
+
+function Test-ImagePublisher {
+    param (
+        $Loc, $Publisher
+    )
+    $(!(Get-AzureRmVMImagePublisher -Location $Loc | ?{$_.PublisherName -eq $Publisher}) -ne $null)
+}
+
+#------------------------------------------------------------------
+# verify marketplace image publisher offername is valid
+#------------------------------------------------------------------
+
+function Test-ImageOffer {
+    param (
+        $Loc, $Publisher, $OfferName
+    )
+    $(!(Get-AzureRmVMImageOffer -Location $Loc -PublisherName $Publisher | ?{$_.Offer -eq $OfferName}) -ne $null)
+}
+
+#------------------------------------------------------------------
+# verify marketplace SKU exists for specified publisher and offer
+#------------------------------------------------------------------
+
+function Test-ImageSKU {
+    param (
+        $Loc, $Publisher, $OfferName, $Sku
+    )
+    $(!(Get-AzureRmVMImageSku -Location $Loc -PublisherName $Publisher -Offer $OfferName | ?{$_.Skus -eq $Sku}) -ne $null)
 }
 
 #endregion
@@ -366,18 +399,19 @@ if ($csvData -ne $null) {
                 # Source VHD
                 #------------------------------------------------------------------
 
+                Write-Verbose "=================================== 5"
+
                 if ($SourceBlob -ne "") {
                     Write-Verbose "info: checking if source VHD ($SourceBlob) exists in ($SourceSA)..."
                     $stTemplateTemp = (Get-AzureRmStorageAccount | ?{$_.StorageAccountName -eq "$SourceSA"})
                     $StTemplateuri  = $stTemplateTemp.PrimaryEndpoints.Blob.ToString()
                     $StorageContext = (Get-AzureRmStorageAccount -ResourceGroupName $SourceRG -Name $SourceSA).context
-                    Write-Verbose "=================================== 5"
                     Write-Verbose "SourceVHD......... $SourceBlob"
                     Write-Verbose "stTemplateUri..... $StTemplateuri"
                     Write-Verbose "StorageContext.... $StorageContext"
                     Write-Verbose "SourceCont........ $SourceCont"
                     Write-Verbose "=================================== 6"
-                    Write-Verbose "checking for valid source object..."
+                    Write-Verbose "info: checking for valid source object..."
                     $CheckForSourceVHD  = [bool](Get-AzureStorageBlob -Context $StorageContext -Container $SourceCont | ? {$_.name -eq $SourceBlob})
                     if (($imageUri -ne "") -and ($Publisher -eq "") -and (!($CheckForSourceVHD))){
                         Write-Output "Error: Source image not found (.vhd): $SourceBlob"
@@ -388,7 +422,25 @@ if ($csvData -ne $null) {
                     }
                 }
                 else {
+                    Write-Verbose "=================================== 6"
                     Write-Verbose "info: Source image for this is a Marketplace build."
+                    Write-Verbose "info: Publisher.... $Publisher"
+                    Write-Verbose "info: OfferName.... $Offer"
+                    Write-Verbose "info: sku.......... $Skus"
+                    Write-Verbose "info: verifying marketplace image parameters..."
+                    if (!(Test-ImagePublisher -Loc $Location -Publisher $Publisher)) {
+                        Write-Output "error: Invalid marketplace publisher name specified!"
+                        Break
+                    }
+                    if (!(Test-ImageOffer -Loc $Location -Publisher $Publisher -OfferName $Offer)) {
+                        Write-Output "error: Invalid marketplace offer name specified!"
+                        Break
+                    }
+                    if (!(Test-ImageSKU -Loc $Location -Publisher $Publisher -OfferName $Offer -Sku $Skus)) {
+                        Write-Output "error: Invalid marketplace publisher name specified!"
+                        Break
+                    }
+                    Write-Verbose "info: source image parameters have been validated."
                 }
 
                 #------------------------------------------------------------------
@@ -468,8 +520,9 @@ if ($csvData -ne $null) {
                 # NIC and Public IP
                 #------------------------------------------------------------------
                 
+                Write-Verbose "=================================== 9"
+                Write-Verbose "info: checking for requested public IP..."
                 If ($pubIP -ne "") {
-                    Write-Verbose "=================================== 9"
                     Write-Verbose "info: Creating public IP: $ipName..."
                     if (!($TestMode)) {
                         $pip = New-AzureRmPublicIpAddress -Name $ipName -ResourceGroupName $rgName -Location $Location -AllocationMethod Static
@@ -480,7 +533,6 @@ if ($csvData -ne $null) {
                     }
                 }
                 else {
-                    Write-Verbose "=================================== 10"
                     Write-Verbose "info: No public IP address specified for $vmName"
                     Write-Verbose "info: Creating NIC: $nicName..."
                     if (!($TestMode)) {
@@ -488,7 +540,7 @@ if ($csvData -ne $null) {
                     }
                 }
 
-                Write-Verbose "=================================== 11"
+                Write-Verbose "=================================== 10"
                 Write-Verbose "info: Preparing credentials for VM Local Admin..."
 
                 $SecurePassword = ConvertTo-SecureString "$VmAdminPwd" -AsPlainText -Force
@@ -498,8 +550,8 @@ if ($csvData -ne $null) {
                 # Availability Set
                 #------------------------------------------------------------------
                 
+                Write-Verbose "=================================== 11"
                 if ($ASName -ne "") {
-                    Write-Verbose "=================================== 12"
                     Write-Verbose "info: Availability set specified: $asname"
                     $aset1 = Get-AzureRmAvailabilitySet -ResourceGroupName $rgName -Name $asName -ErrorAction SilentlyContinue
                     if (!($aset1)) {
@@ -548,7 +600,7 @@ if ($csvData -ne $null) {
                 # Update Virtual Machine Configuration
                 #------------------------------------------------------------------
 
-                Write-Verbose "=================================== 13"
+                Write-Verbose "=================================== 12"
                 Write-Verbose "info: Configuring VM OS and NIC association..."
                 # NOTE: customer may want to disable ProvisionVMAgent parameter ***
                 if (!($TestMode)) {
@@ -564,7 +616,7 @@ if ($csvData -ne $null) {
                 # OS Disk
                 #------------------------------------------------------------------
 
-                Write-Verbose "=================================== 14"
+                Write-Verbose "=================================== 13"
                 $osDiskUri = "$stURI"+"$DestCont/$osdiskname"
                 Write-Verbose "info: Disk blob uri is $osDiskUri"
                 if ($Publisher -eq "") { 
@@ -608,7 +660,7 @@ if ($csvData -ne $null) {
                 # Create Virtual Machine
                 #------------------------------------------------------------------
                 
-                Write-Verbose "=================================== 15"
+                Write-Verbose "=================================== 14"
                 if (!($TestMode)) {
                     Write-Output "info: Creating virtual machine: $vmName..."
                     $vmt1  = Get-Date
@@ -625,7 +677,8 @@ if ($csvData -ne $null) {
                 # Data Disks
                 #------------------------------------------------------------------
 
-                Write-Verbose "=================================== 16"
+                Write-Verbose "=================================== 15"
+                Write-Verbose "info: verifying data disk parameters..."
                 if ($DataDiskSize1 -ne "") {
                     Write-Verbose "info: Creating Data Disk 1: $dataDiskName1"     
                     $dataDiskUri1 = "$stURI"+"$DestCont"+"/$dataDiskName1"
@@ -648,7 +701,7 @@ if ($csvData -ne $null) {
                             $vm = Get-AzureRmVM -ResourceGroupName $rgName -Name $vmName 
                             Write-Verbose "info: Attaching data disk2 ($dataDiskName1) to VM ($vmName)"
                             Add-AzureRmVMDataDisk -VM $vm -Name $dataDiskName2 -VhdUri $dataDiskUri2 `
-                                    -Caching $Caching -DiskSizeinGB $DataDiskSize2 -CreateOption Empty | Out-Null
+                                    -Lun 1 -Caching $Caching -DiskSizeinGB $DataDiskSize2 -CreateOption Empty | Out-Null
                             Update-AzureRmVM -ResourceGroupName $rgName -VM $vm | Out-Null
                         }
                         else {
@@ -663,7 +716,7 @@ if ($csvData -ne $null) {
                     Write-Verbose "info: No Data Disk 1 Requested for $vmName"
                 }
             
-                Write-Verbose "=================================== 17"
+                Write-Verbose "=================================== 16"
                 # Write Results to Screen
                 if (!($TestMode)) {
                     $vmNic = Get-AzureRmNetworkInterface -Name $nicName -ResourceGroupName $rgName
