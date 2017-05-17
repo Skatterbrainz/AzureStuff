@@ -1,3 +1,5 @@
+#requires -version 3
+#requires -modules AzureRM
 <#
 .SYNOPSIS
     Copy-AzureBlob copies a Blob file from one resource group, storage account
@@ -34,45 +36,74 @@
     If Source File exists in the specified destination (container) it will not be overwritten
 #>
 
-param (
-    [parameter(Mandatory=$True)] [string] $SrcBlob,
-    [parameter(Mandatory=$True)] [string] $SrcResourceGroupName,
-    [parameter(Mandatory=$True)] [string] $SrcContainerName,
-    [parameter(Mandatory=$True)] [string] $SrcStorageAccountName,
-    [parameter(Mandatory=$True)] [string] $DestResourceGroupName,
-    [parameter(Mandatory=$True)] [string] $DestContainerName,
-    [parameter(Mandatory=$True)] [string] $DestStorageAccountName,
-    [parameter(Mandatory=$True)] [switch] $OverWrite
-)
+function Copy-AzureSourceVHD {
+    param (
+        [parameter(Mandatory=$True, HelpMessage="Source Blob name")] 
+            [ValidateNotNullOrEmpty()]
+            [string] $SourceBlob,
+        [parameter(Mandatory=$True, HelpMessage="Source Resource Group name")] 
+            [ValidateNotNullOrEmpty()]
+            [string] $SrcResourceGroupName,
+        [parameter(Mandatory=$True, HelpMessage="Source Container name")] 
+            [ValidateNotNullOrEmpty()]
+            [string] $SrcContainerName,
+        [parameter(Mandatory=$True, HelpMessage="Source Storage Account name")] 
+            [ValidateNotNullOrEmpty()]
+            [string] $SrcStorageAccountName,
+        [parameter(Mandatory=$True, HelpMessage="Target Resource Group name")] 
+            [ValidateNotNullOrEmpty()]
+            [string] $DestResourceGroupName,
+        [parameter(Mandatory=$True, HelpMessage="Target Container name")] 
+            [ValidateNotNullOrEmpty()]
+            [string] $DestContainerName,
+        [parameter(Mandatory=$True, HelpMessage="Target Storage Account name")] 
+            [ValidateNotNullOrEmpty()]
+            [string] $DestStorageAccountName,
+        [parameter(Mandatory=$False, HelpMessage="Overwrite Destination if existing")] 
+            [switch] $OverWrite = $False
+    )
+    Write-Verbose "[copy-azuresourcevhd] $SourceBlob"
+    Write-Verbose "info: SrcResourceGroupName..... $SrcResourceGroupName"
+    Write-Verbose "info: DestResourceGroupName.... $DestResourceGroupName"
+    Write-Verbose "info: SrcStorageAccountName.... $SrcStorageAccountName"
+    Write-Verbose "info: DestStorageAccountName... $DestStorageAccountName"
+    Write-Verbose "info: SrcContainerName......... $SrcContainerName"
+    Write-Verbose "info: DestContainerName........ $DestContainerName"
 
-$SourceStorageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $SrcResourceGroupName -Name $SrcStorageAccountName)[0].Value
-$DestStorageKey   = (Get-AzureRmStorageAccountKey -ResourceGroupName $DestResourceGroupName -Name $DestStorageAccountName)[0].Value
+    $SourceStorageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $SrcResourceGroupName -Name $SrcStorageAccountName)[0].Value
+    $DestStorageKey   = (Get-AzureRmStorageAccountKey -ResourceGroupName $DestResourceGroupName -Name $DestStorageAccountName)[0].Value
 
-$SourceStorageContext = New-AzureStorageContext –StorageAccountName $SourceStorageAccount -StorageAccountKey $SourceStorageKey
-$DestStorageContext   = New-AzureStorageContext –StorageAccountName $DestStorageAccountName -StorageAccountKey $DestStorageKey
+    $SourceStorageContext = New-AzureStorageContext –StorageAccountName $SourceStorageAccount -StorageAccountKey $SourceStorageKey
+    $DestStorageContext   = New-AzureStorageContext –StorageAccountName $DestStorageAccountName -StorageAccountKey $DestStorageKey
 
-$Blobs = (Get-AzureStorageBlob -Context $SourceStorageContext -Container $SrcContainerName | ?{$_.Name -eq $SrcBlob})
-$BlobCpyAry = @()
+    $Blobs = (Get-AzureStorageBlob -Context $SourceStorageContext -Container $SrcContainerName | ?{$_.Name -eq $SourceBlob})
+    $BlobCpyAry = @()
     
-$DestBlobs = (Get-AzureStorageBlob -Context $DestStorageContext -Container $DestContainerName | ?{$_.Name -eq $SrcBlob})
-if ((!($OverWrite)) -and ($DestBlobs -ne $null)) {
-    Write-Output "$SrcBlob already exists in destination."
-}
-else {
-    
-    foreach ($Blob in $Blobs) {
-        Write-Output "info: Copying $Blob.Name"
-        $BlobCopy = Start-CopyAzureStorageBlob -Context $SourceStorageContext `
-            -SrcContainer $SourceContainer -SrcBlob $Blob.Name `
-            -DestContext $DestStorageContext -DestContainer $DestContainer `
-            -DestBlob $Blob.Name -Force
-        $BlobCpyAry += $BlobCopy
+    $DestBlobs = (Get-AzureStorageBlob -Context $DestStorageContext -Container $DestContainerName | ?{$_.Name -eq $SourceBlob})
+    if ((!($OverWrite)) -and ($DestBlobs -ne $null)) {
+        Write-Output "$SourceBlob already exists in destination."
     }
+    else {
+        Write-Verbose "info: Copying blob objects..."
+        if (!($TestMode)) {
+            foreach ($Blob in $Blobs) {
+                Write-Verbose "info: copying $($Blob.Name)..."
+                $BlobCopy = Start-CopyAzureStorageBlob -Context $SourceStorageContext -SrcContainer $SourceContainer -SrcBlob $Blob.Name -DestContext $DestStorageContext -DestContainer $DestContainer -DestBlob $Blob.Name -Force
+                $BlobCpyAry += $BlobCopy
+            }
 
-    foreach ($BlobCopy in $BlobCpyAry) {
-        $CopyState = $BlobCopy | Get-AzureStorageBlobCopyState
-        $Message = $CopyState.Source.AbsolutePath + " " + $CopyState.Status + `
-            " {0:N2}%" -f (($CopyState.BytesCopied/$CopyState.TotalBytes)*100) 
-        Write-Output $Message
+            foreach ($BlobCopy in $BlobCpyAry) {
+                $CopyState = $BlobCopy | Get-AzureStorageBlobCopyState
+                $Message = $CopyState.Source.AbsolutePath + " " + $CopyState.Status + " {0:N2}%" -f (($CopyState.BytesCopied/$CopyState.TotalBytes)*100) 
+                Write-Output $Message
+            }
+        }
+        else {
+            foreach ($Blob in $Blobs) {
+                Write-Verbose "test: copying $($Blob.Name)..."
+            }
+        }
     }
+    $(Get-AzureStorageBlob -Context $DestStorageContext -Container $DestContainerName | 
+        Where-Object {$_.Name -eq $SourceBlob})
 }
