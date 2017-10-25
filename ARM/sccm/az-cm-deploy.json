@@ -1,0 +1,510 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceGroupName": {
+            "defaultValue": "RG001",
+            "type": "string"
+        },
+        "LocationName": {
+            "defaultValue": "eastus2",
+            "allowedValues": [
+                "eastus",
+                "eastus2",
+                "westus"
+            ],
+            "type": "string"
+        },
+        "AdminUserName": {
+            "defaultValue": "sccmadmin",
+            "minLength": 1,
+            "maxLength": 24,
+            "type": "string"
+        },
+        "AdminPassword": {
+            "type": "securestring",
+            "minLength": 12,
+            "defaultvalue": null
+        }
+    },
+    "variables": {
+        "StorageAccountType": "Premium_LRS",
+        "vmSize_dc01": "Standard_DS1_v2",
+        "vmSize_cm01": "Standard_E2s_v3",
+        "vmSize_ws01": "Standard_DS2_v2",
+        "virtualMachines_CM01_name": "CM01",
+        "virtualMachines_DC01_name": "DC01",
+        "virtualMachines_WS01_name": "WS01",
+        "vmOS_Offer_CM01": "WindowsServer",
+        "vmOS_Offer_DC01": "WindowsServer",
+        "vmOS_Offer_WS01": "Windows-10",
+        "vmOS_Sku_CM01": "2016-Datacenter",
+        "vmOS_Sku_DC01": "2016-Datacenter",
+        "vmOS_Sku_WS01": "RS2-Pro",
+        "vmOS_Publisher_CM01": "MicrosoftWindowsServer",
+        "vmOS_Publisher_DC01": "MicrosoftWindowsServer",
+        "vmOS_Publisher_WS01": "MicrosoftWindowsDesktop",
+        "networkInterfaces_cm01_name": "[concat(variables('virtualMachines_CM01_name'), 'nic1')]",
+        "networkInterfaces_dc01_name": "[concat(variables('virtualMachines_DC01_name'), 'nic1')]",
+        "networkInterfaces_ws01_name": "[concat(variables('virtualMachines_WS01_name'), 'nic1')]",
+        "publicIPAddresses_CM01_ip_name": "[concat(variables('virtualMachines_CM01_name'), '-ip')]",
+        "publicIPAddresses_DC01_ip_name": "[concat(variables('virtualMachines_DC01_name'), '-ip')]",
+        "publicIPAddresses_WS01_ip_name": "[concat(variables('virtualMachines_WS01_name'), '-ip')]",
+        "virtualNetworks_vnet_name": "[concat(parameters('resourceGroupName'), '-vnet')]",
+        "networkSecurityGroup_name": "[concat(parameters('resourceGroupName'), '-nsg')]",
+        "subnets_default_name": "default"
+    },
+    "resources": [
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Compute/virtualMachines/CM01'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_CM01_name')]",
+            "apiVersion": "2017-03-30",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "tags": {
+                "Environment": "Lab",
+                "Technology": "sccm"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('vmSize_cm01')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('vmOS_Publisher_CM01')]",
+                        "offer": "[variables('vmOS_Offer_CM01')]",
+                        "sku": "[variables('vmOS_Sku_CM01')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('virtualMachines_CM01_name'),'_OsDisk1')]",
+                        "osType": "Windows",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('StorageAccountType')]"
+                        }
+                    },
+                    "dataDisks": [
+                        {
+                            "diskSizeGB": 1023,
+                            "lun": 0,
+                            "createOption": "Empty",
+                            "managedDisk": {
+                                "storageAccountType": "[variables('StorageAccountType')]"
+                            }
+                        },
+                        {
+                            "diskSizeGB": 1023,
+                            "lun": 1,
+                            "createOption": "Empty",
+                            "managedDisk": {
+                                "storageAccountType": "[variables('StorageAccountType')]"
+                            }
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_CM01_name')]",
+                    "adminUsername": "[parameters('AdminUserName')]",
+                    "adminPassword": "[parameters('AdminPassword')]",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_cm01_name'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_cm01_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Compute/virtualMachines/DC01'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_DC01_name')]",
+            "apiVersion": "2017-03-30",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('vmSize_dc01')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('vmOS_Publisher_DC01')]",
+                        "offer": "[variables('vmOS_Offer_DC01')]",
+                        "sku": "[variables('vmOS_Sku_DC01')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('virtualMachines_DC01_name'),'_OsDisk1')]",
+                        "osType": "Windows",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('StorageAccountType')]"
+                        }
+                    },
+                    "dataDisks": [
+                        {
+                            "diskSizeGB": 1023,
+                            "lun": 0,
+                            "createOption": "Empty",
+                            "managedDisk": {
+                                "storageAccountType": "[variables('StorageAccountType')]"
+                            }
+                        },
+                        {
+                            "diskSizeGB": 1023,
+                            "lun": 1,
+                            "createOption": "Empty",
+                            "managedDisk": {
+                                "storageAccountType": "[variables('StorageAccountType')]"
+                            }
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_DC01_name')]",
+                    "adminUsername": "[parameters('AdminUserName')]",
+                    "adminPassword": "[parameters('AdminPassword')]",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dc01_name'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dc01_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Compute/virtualMachines/WS01'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_WS01_name')]",
+            "apiVersion": "2017-03-30",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('vmSize_ws01')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('vmOS_Publisher_WS01')]",
+                        "offer": "[variables('vmOS_Offer_WS01')]",
+                        "sku": "[variables('vmOS_Sku_WS01')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('virtualMachines_WS01_name'),'_OsDisk1')]",
+                        "osType": "Windows",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('StorageAccountType')]"
+                        }
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_WS01_name')]",
+                    "adminUsername": "[parameters('AdminUserName')]",
+                    "adminPassword": "[parameters('AdminPassword')]",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_ws01_name'))]"
+                        }
+                    ]
+                },
+                "licenseType": "Windows_Client"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_ws01_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/networkInterfaces/cm01'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_cm01_name')]",
+            "apiVersion": "2017-06-01",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "etag": "W/\"7d126e9e-928d-4874-b93b-49d0f03d5456\"",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "privateIPAddress": "10.0.0.5",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_CM01_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_vnet_name'), variables('subnets_default_name'))]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": [],
+                    "appliedDnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroup_name'))]"
+                },
+                "primary": true,
+                "virtualMachine": {
+                    "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_CM01_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_vnet_name'), variables('subnets_default_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroup_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/networkInterfaces/dc01'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_dc01_name')]",
+            "apiVersion": "2017-06-01",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "etag": "W/\"ae206bb3-7870-475c-aec1-8ffa0e7bc838\"",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "privateIPAddress": "10.0.0.4",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_DC01_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_vnet_name'), variables('subnets_default_name'))]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": [],
+                    "appliedDnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroup_name'))]"
+                },
+                "primary": true,
+                "virtualMachine": {
+                    "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_DC01_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_vnet_name'), variables('subnets_default_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroup_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/networkInterfaces/ws01'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_ws01_name')]",
+            "apiVersion": "2017-06-01",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "etag": "W/\"c9df934a-19d4-4789-b44a-d902e3d1646b\"",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "privateIPAddress": "10.0.0.6",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_WS01_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_vnet_name'), variables('subnets_default_name'))]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": [],
+                    "appliedDnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroup_name'))]"
+                },
+                "primary": true,
+                "virtualMachine": {
+                    "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_WS01_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_vnet_name'), variables('subnets_default_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroup_name'))]"
+            ]
+        },
+        {
+            "comments": "One network security group for all the goodies",
+            "name": "[variables('networkSecurityGroup_name')]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2017-06-01",
+            "location": "[parameters('LocationName')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-rdp",
+                        "properties": {
+                            "priority": 1000,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "3389"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/publicIPAddresses/CM01-ip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_CM01_ip_name')]",
+            "apiVersion": "2017-06-01",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "provisioningState": "Succeeded",
+                "resourceGuid": "c503964f-f763-4413-8b30-b5c72d9ba42d",
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/publicIPAddresses/DC01-ip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_DC01_ip_name')]",
+            "apiVersion": "2017-06-01",
+            "location": "eastus2",
+            "scale": null,
+            "properties": {
+                "provisioningState": "Succeeded",
+                "resourceGuid": "83ba0770-b699-4a1c-b657-d80b96c77a53",
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/publicIPAddresses/WS01-ip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_WS01_ip_name')]",
+            "apiVersion": "2017-06-01",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "provisioningState": "Succeeded",
+                "resourceGuid": "11ddb23a-dd4e-4d27-8257-a4fa91248944",
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/virtualNetworks/RG001-vnet'.",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworks_vnet_name')]",
+            "apiVersion": "2017-06-01",
+            "location": "[parameters('LocationName')]",
+            "scale": null,
+            "properties": {
+                "provisioningState": "Succeeded",
+                "resourceGuid": "3c4ff306-24e8-4561-9b5c-8d0b0ccd23b4",
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/24"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "default",
+                        "etag": "W/\"05d3ea1e-bdff-4d66-8517-3b9d7d11cb11\"",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "addressPrefix": "10.0.0.0/24"
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": []
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/af15d920-86d8-4062-8801-d11eee853114/resourceGroups/RG001/providers/Microsoft.Network/virtualNetworks/RG001-vnet/subnets/default'.",
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "name": "[concat(variables('virtualNetworks_vnet_name'), '/', variables('subnets_default_name'))]",
+            "apiVersion": "2017-06-01",
+            "scale": null,
+            "properties": {
+                "provisioningState": "Succeeded",
+                "addressPrefix": "10.0.0.0/24"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "adminUsername": {
+            "type": "string",
+            "value": "[parameters('adminUsername')]"
+        }
+    }
+}
