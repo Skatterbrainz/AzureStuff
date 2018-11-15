@@ -31,6 +31,9 @@ param (
 )
 $time1 = Get-Date
 
+$Script:countall = 0
+$Script:ccount = 0
+
 function Invoke-AzureBlobBackup {
     [CmdletBinding(SupportsShouldProcess=$True)]
     param (
@@ -45,8 +48,16 @@ function Invoke-AzureBlobBackup {
     Write-Verbose "getting storage containers"
 
     $sc1 = Get-AzureRmStorageContainer -ResourceGroupName $ResourceGroupName -StorageAccountName $SourceStorageAccount
+    if ($IncludeContainers.Count -gt 0) {
+        Write-Verbose "filtering list of source containers"
+        $sc1 = $sc1 | ?{$IncludeContainers -contains $_.Name}
+        Write-Verbose "containers: $($($sc1).Name -join ',')"
+    }
+
     if ($ExcludeContainers.Count -gt 0) {
+        Write-Verbose "removing excluded containers from source list"
         $sc1 = $sc1 | ?{$ExcludeContainers -notcontains $_.Name}
+        Write-Verbose "containers: $($($sc1).Name -join ',')"
     }
 
     Write-Verbose "validating destination container [$DestinationContainer]"
@@ -70,8 +81,8 @@ function Invoke-AzureBlobBackup {
     }
 
     Write-Verbose "enumerating source containers"
-    $countall = 0
-    $ccount = 0
+    $Script:countall = 0
+    $Script:ccount = 0
     foreach($sc in $sc1) {
         $sourceContainer = $sc.Name
         Write-Verbose "source container: $sourceContainer"
@@ -84,16 +95,16 @@ function Invoke-AzureBlobBackup {
         Write-Verbose "copying blobs to [$DestinationContainer]..."
     
         foreach ($blob in $srcBlobs) {
-            $countall++
+            $Script:countall++
             $srcBlob = $blob.Name
             $destPrefix = $sourceContainer+'-'+(Get-Date -f $BackupDateFormat)
             $destBlob = "$destPrefix`/$srcBlob"
             if ($Force -or ($destBlobs -notcontains $destBlob)) {
-                Write-Verbose "copy [$srcBlob] to [$destBlob]"
+                Write-Verbose "[$sourceContainer] copying [$srcBlob] to [$destBlob]"
                 try {
                     $copyjob = Start-AzureStorageBlobCopy -Context $context1 -SrcContainer $sourceContainer -SrcBlob $srcBlob -DestContainer $DestinationContainer -DestBlob "$destBlob" -DestContext $context2 -Force -Confirm:$False
                     Write-Verbose "copy successful"
-                    $ccount++
+                    $Script:ccount++
                 }
                 catch {
                     Write-Error $Error[0].Exception.Message
@@ -219,5 +230,5 @@ if ($config = Get-AzureBackupConfig -FilePath $ConfigFile) {
     }
 }
 $time2 = Get-Date
-Write-Verbose "completed. $countall total objects processed. $ccount were copied"
+Write-Verbose "completed. $($Script:countall) total objects processed. $($Script:ccount) were copied"
 Write-Verbose "total runtime $($(New-TimeSpan -Start $time1 -End $time2).TotalSeconds) seconds"
