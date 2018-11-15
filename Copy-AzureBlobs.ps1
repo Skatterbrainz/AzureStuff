@@ -16,7 +16,7 @@
 .EXAMPLE
     .\Copy-AzureBlobs.ps1 -ConfigFile .\myconfig.json -Force -ResetCredentials
 .NOTES
-    1.0.0 - 2018/11/14 - First release (David Stein, Catapult Systems)
+    1.0.0 - 2018/11/14 - First release (skatterbrainz)
 #>
 
 [CmdletBinding(SupportsShouldProcess=$True)]
