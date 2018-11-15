@@ -1,0 +1,14 @@
+{
+    "ResourceGroupName": "<name>",
+    "SourceStorageAccount": "<name>",
+    "DestinationStorageAccount": "<name>",
+    "StorageAccountKey1": "<key>",
+    "StorageAccountKey2": "<key>",
+    "CustomerName": "Contoso",
+    "AzureUserID": "<email>",
+    "SubscriptionName": "<name>",
+    "DestinationContainer": "<containername>",
+    "BackupDateFormat": "yyyyMMdd", 
+    "EnvironmentName": "AzureUSGovernment",
+    "ExcludedContainers": ["$logs","morelogs","stupidlogs","smartlogs"]
+}
